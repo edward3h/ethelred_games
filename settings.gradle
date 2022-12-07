@@ -8,7 +8,7 @@ enableFeaturePreview("VERSION_CATALOGS")
 dependencyResolutionManagement {
     versionCatalogs {
         libs {
-            version('jackson', '2.12.2')
+            version('jackson', '2.14.1')
             version('log4j', '2.14.1')
             alias('jackson-databind').to('com.fasterxml.jackson.core', 'jackson-databind').versionRef('jackson')
             alias('jackson-yaml').to('com.fasterxml.jackson.dataformat', 'jackson-dataformat-yaml').versionRef('jackson')
