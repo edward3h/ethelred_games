@@ -25,7 +25,7 @@ dependencies {
     testImplementation ('org.spockframework:spock-core:2.3-groovy-3.0') {
         exclude group: 'org.codehaus.groovy'
     }
-    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.21'
+    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.22'
     testRuntimeOnly 'org.objenesis:objenesis:3.3'
     
     testImplementation platform('com.agorapulse:gru-bom:1.2.5')
