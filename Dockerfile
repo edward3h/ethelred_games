@@ -1,6 +1,6 @@
 FROM node:18-alpine AS node
 
-FROM eclipse-temurin:17.0.5_8-jdk-alpine as jre-build
+FROM eclipse-temurin:17.0.6_10-jdk-alpine as jre-build
 
 # Create a custom Java runtime
 RUN apk add --no-cache binutils && \
@@ -12,7 +12,7 @@ RUN apk add --no-cache binutils && \
          --compress=2 \
          --output /javaruntime
 
-FROM eclipse-temurin:17.0.5_8-jdk-alpine AS builder
+FROM eclipse-temurin:17.0.6_10-jdk-alpine AS builder
 
 COPY --from=node /usr/lib /usr/lib
 COPY --from=node /usr/local/share /usr/local/share
