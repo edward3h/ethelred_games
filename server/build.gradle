@@ -8,7 +8,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'io.javalin', name: 'javalin', version: '5.6.2'
+    implementation group: 'io.javalin', name: 'javalin', version: '5.6.3'
     implementation 'org.eclipse.jetty:jetty-proxy:11.0.14'
 
     implementation 'info.picocli:picocli:4.7.5'
