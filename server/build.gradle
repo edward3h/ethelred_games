@@ -11,7 +11,7 @@ dependencies {
     implementation group: 'io.javalin', name: 'javalin', version: '5.6.2'
     implementation 'org.eclipse.jetty:jetty-proxy:11.0.14'
 
-    implementation 'info.picocli:picocli:4.7.1'
+    implementation 'info.picocli:picocli:4.7.5'
     implementation 'com.github.callicoder:java-snowflake:a166af56e2'
 
     implementation libs.bundles.jackson
