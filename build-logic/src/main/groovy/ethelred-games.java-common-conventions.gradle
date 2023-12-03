@@ -13,7 +13,7 @@ dependencies {
     implementation libs.log4j.api
     runtimeOnly libs.bundles.log4j.runtime
 
-    implementation 'org.jetbrains:annotations:24.0.1'
+    implementation 'org.jetbrains:annotations:24.1.0'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 
     testImplementation "org.apache.groovy:groovy:4.0.16"
