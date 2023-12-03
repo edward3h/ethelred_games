@@ -1,6 +1,6 @@
 [versions]
 jackson = "2.14.2"
-log4j = "2.20.0"
+log4j = "2.22.0"
 
 [libraries]
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
