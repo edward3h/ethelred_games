@@ -33,6 +33,6 @@ jobs:
         node-version: 18
     - run: npm install -g pnpm
     - name: Build with Gradle
-      uses: gradle/gradle-build-action@ef85c4ed42c6bd3e2d9deb8edcba57e41360968b
+      uses: gradle/gradle-build-action@942d5e1456472d289f4b112fd3b62244067bac9c
       with:
         arguments: build
