@@ -149,6 +149,17 @@ class ServerTest extends Specification {
             }
         }
 
+        // player 1004 set name
+        gru.test {
+            post('/api/player/name') {
+                cookie('playerId', '1004')
+                content(inline("Gwynnethilde Pendragon-Thorfinnsson"), 'text/plain')
+            }
+            expect {
+                status(400)
+            }
+        }
+
         // player 1001 is ready
         gru.test {
             post('/api/nuo/1002') {

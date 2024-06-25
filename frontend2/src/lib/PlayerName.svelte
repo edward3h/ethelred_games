@@ -45,7 +45,7 @@
 <dialog bind:this={dialog} class="modal">
     <!-- svelte-ignore a11y-autofocus -->
     <div class="modal-box">
-    <input class="input input-bordered" type="text" bind:this={textRef} bind:value={name} on:change={updateName} on:click|stopPropagation>
+    <input class="input input-bordered" maxlength="20" type="text" bind:this={textRef} bind:value={name} on:change={updateName} on:click|stopPropagation>
     <button class="btn" on:click|stopPropagation={updateName}>Update Name</button>
     </div>
 </dialog>

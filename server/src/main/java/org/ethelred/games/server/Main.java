@@ -150,6 +150,12 @@ public class Main implements Runnable
                     if (name.startsWith("\"") && name.endsWith("\"") && name.length() > 2) {
                         name = name.substring(1, name.length() - 1);
                     }
+
+                    if(name.length() > 20){
+                        ctx.json("Bad request: Player name is too long.").status(400);
+                        return;
+                    }
+
                     engine.playerName(getPlayerId(ctx), name);
                     ctx.cookie(PLAYER_NAME_KEY, URLEncoder.encode(name, StandardCharsets.UTF_8));
                     ctx.status(HttpStatus.NO_CONTENT);
