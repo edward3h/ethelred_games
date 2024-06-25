@@ -33,7 +33,7 @@ jobs:
         node-version: 20
     - run: npm install -g pnpm
     - name: Build with Gradle
-      uses: gradle/gradle-build-action@ef85c4ed42c6bd3e2d9deb8edcba57e41360968b
+      uses: gradle/gradle-build-action@66535aaf56f831b35e3a8481c9c99b665b84dd45
       with:
         arguments: build
     - name: Publish Test Report
