@@ -9,7 +9,7 @@ repositories {
 
 dependencies {
     implementation group: 'io.javalin', name: 'javalin', version: '5.6.3'
-    implementation 'org.eclipse.jetty:jetty-proxy:11.0.18'
+    implementation 'org.eclipse.jetty:jetty-proxy:11.0.24'
 
     implementation 'info.picocli:picocli:4.7.5'
     implementation 'com.github.callicoder:java-snowflake:a166af56e2'
