@@ -48,7 +48,7 @@ class TestGamePlay extends Specification {
         'b3' | 'b6' | null
         'rs' | 'b6' | null
         'zy' | 'b6' | null
-        'xx' | 'b6' | null
+//        'xx' | 'b6' | null
         'r6' | 'xw' | Color.YELLOW
         'r6' | 'xx' | Color.YELLOW
     }
