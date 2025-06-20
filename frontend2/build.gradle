@@ -12,3 +12,8 @@ tasks.register('build', PnpmTask) {
     dependsOn("pnpmInstall")
     args = ['run', 'build']
 }
+
+tasks.register('run', PnpmTask) {
+    dependsOn("pnpmInstall")
+    args = ['run', 'dev']
+}

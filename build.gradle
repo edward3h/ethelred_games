@@ -53,3 +53,10 @@ rewrite {
 gitHooks {
 	hooks = ['pre-commit': 'check']
 }
+
+tasks.register("runDev") {
+	group("application")
+	description("Run server and frontend in dev mode ")
+	dependsOn(":frontend2:run")
+	dependsOn(":server:run")
+}
