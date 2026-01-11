@@ -47,3 +47,9 @@ Upgraded from Java 17 to Java 25 (LTS release, Sept 2025).
 - TODO: Re-enable Groovy/Spock tests when stable versions are released
 
 **Testing:** Core Java code builds and runs successfully on Java 25. Groovy tests will need to be re-enabled when compatible Groovy 5 + Spock combination is available.
+
+**Update (2026-01-11):**
+- Upgraded Groovy from 5.0.0-alpha-10 to 5.0.3 (latest stable)
+- Re-enabled Groovy tests with Spock 2.4-groovy-5.0
+- Groovy 5.0.3 and Spock 2.4 stable now fully compatible with Java 25
+- All 43 Groovy tests across 8 test classes now compile and run successfully

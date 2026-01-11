@@ -227,9 +227,8 @@ Git hooks configured via Gradle plugin to run `./gradlew check` before commit. T
 
 ## Known Limitations
 
-**Groovy Tests (as of 2026-01-10):**
-- Groovy/Spock tests are temporarily disabled in `ethelred-games.java-common-conventions.gradle`
-- Java 25 requires Groovy 5.x, but Spock framework doesn't have a stable Groovy 5 release yet
-- Using Groovy 5.0.0-alpha-10, but Spock 2.4 milestones are incompatible
-- Tests will be re-enabled when stable Groovy 5 + Spock versions are available
+**[RESOLVED 2026-01-11]** Groovy Tests:
+- ~~Groovy/Spock tests temporarily disabled~~
+- Upgraded to Groovy 5.0.3 (stable) and Spock 2.4-groovy-5.0
+- All 43 Groovy tests passing on Java 25
 - Core Java code compiles and runs successfully on Java 25
