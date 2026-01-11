@@ -110,7 +110,7 @@ public class PlayCardPerformer implements ActionPerformer<NuoGame>
     {
         var current = game.current();
         LOGGER.debug("isValidPlay? current {} played {}", current, card);
-        if (card.color() == Color.WILD && card.type() == Card.Type.DRAW_FOUR)
+        if (!game.houseRules[0] && card.color() == Color.WILD && card.type() == Card.Type.DRAW_FOUR)
         {
             // check that the player has no other playable cards in hand
             return np.hand().stream().filter(c -> c.type() != Card.Type.DRAW_FOUR).noneMatch(c -> isValidPlay(game, np, c));
