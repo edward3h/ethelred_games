@@ -2,13 +2,13 @@ plugins {
 	id 'java'
 	id 'groovy'
 	id "com.diffplug.spotless" version "6.25.0"
-	id 'org.openrewrite.rewrite' version '5.40.6'
+	id 'org.openrewrite.rewrite' version '6.25.0'
 	id "com.github.jakemarsden.git-hooks" version "0.0.2"
 }
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(25)
 	}
 }
 
@@ -43,7 +43,6 @@ rewrite {
 	activeRecipe(
 			"org.openrewrite.java.security.SecureRandom",
 			"org.openrewrite.java.security.JavaSecurityBestPractices",
-			"org.openrewrite.java.migrate.UpgradeToJava17",
 			"org.openrewrite.java.cleanup.CommonStaticAnalysis",
 			"org.openrewrite.java.RemoveUnusedImports",
 			"org.openrewrite.java.cleanup.Cleanup"
