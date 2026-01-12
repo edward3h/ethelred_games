@@ -30,7 +30,7 @@ jobs:
         distribution: 'temurin'
     - uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22.20.0
     - run: npm install -g pnpm
     - name: Build with Gradle
       uses: gradle/gradle-build-action@093dfe9d598ec5a42246855d09b49dc76803c005

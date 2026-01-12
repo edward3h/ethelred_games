@@ -196,8 +196,8 @@ Uses **Dagger 2** with component-based architecture:
 ## Requirements
 
 - **Java**: JDK 25 (via Gradle toolchain)
-- **Node.js**: 20+ (managed via `.tool-versions`)
-- **Package manager**: pnpm
+- **Node.js**: 22.20.0+ (managed via `.tool-versions`)
+- **Package manager**: pnpm 10.16.1+ (pinned via packageManager field)
 - **Gradle**: 9.2.1+ (wrapper included)
 
 ## Deployment

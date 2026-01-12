@@ -2,8 +2,8 @@
 
 ## Frontend / client
 
-* Node 18
-* pnpm
+* Node 22.20.0 (upgraded from 20.11.0 on 2026-01-11)
+* pnpm 10.16.1 (pinned via packageManager field)
 * sveltekit
 
 ## Backend / server
@@ -53,3 +53,19 @@ Upgraded from Java 17 to Java 25 (LTS release, Sept 2025).
 - Re-enabled Groovy tests with Spock 2.4-groovy-5.0
 - Groovy 5.0.3 and Spock 2.4 stable now fully compatible with Java 25
 - All 43 Groovy tests across 8 test classes now compile and run successfully
+
+## Node.js 22 Upgrade (2026-01-11)
+
+Upgraded from Node.js 20.11.0 to 22.20.0 (LTS "Jod").
+
+**Changes:**
+- Node.js 20.11.0 → 22.20.0 (Active LTS until October 2025, Maintenance LTS until April 2027)
+- Pinned pnpm to 10.16.1 via packageManager field in package.json
+- Updated .tool-versions for local development
+- Updated GitHub Actions workflow to Node 22.20.0
+- Updated Dockerfile to use node:22.20.0-alpine
+- Updated package.json engines constraint to >=22
+- Regenerated pnpm-lock.yaml with lockfile v9.0 format
+- All frontend dependencies (SvelteKit 1.30.3, Vite 4.5.1) verified compatible with Node 22
+
+**Rationale:** Node 20 enters Maintenance LTS in October 2025, while Node 22 provides Active LTS support through October 2025 and Maintenance support until April 2027. Conservative approach skipping Node 24 to minimize compatibility risk.
