@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.gradle --mount=type=cache,target=/root/.pnp
     pnpm --version && \
     ./gradlew --no-daemon build installDist
 
-FROM alpine:3.19
+FROM alpine:3.23
 
 COPY --from=node /usr/lib /usr/lib
 COPY --from=node /usr/local/share /usr/local/share
