@@ -1,0 +1,8 @@
+plugins {
+    id 'ethelred-games.java-library-conventions'
+}
+
+dependencies {
+    implementation(project(":engine"))
+    implementation libs.bundles.jackson
+}
