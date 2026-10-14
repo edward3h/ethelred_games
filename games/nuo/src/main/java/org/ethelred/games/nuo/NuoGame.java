@@ -23,6 +23,7 @@ public class NuoGame extends BaseGame<NuoPlayer>
         PLAY_DRAWN
     }
 
+    boolean[] houseRules = new boolean[2];
     private final Deck deck;
     boolean reversedDirection;
     private @Nullable
@@ -36,6 +37,8 @@ public class NuoGame extends BaseGame<NuoPlayer>
     {
         super(id);
         this.deck = deck;
+        houseRules[0] = true;
+        houseRules[1] = true;
     }
 
     @Override

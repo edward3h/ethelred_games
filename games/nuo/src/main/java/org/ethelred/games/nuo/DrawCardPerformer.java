@@ -31,7 +31,9 @@ public class DrawCardPerformer implements ActionPerformer<NuoGame>
         }
         else
         {
-            game.nextPlayer();
+            if (!game.houseRules[1]) {
+                game.nextPlayer();
+            }
         }
     }
 }
