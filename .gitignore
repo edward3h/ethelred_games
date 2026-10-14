@@ -16,3 +16,9 @@ build
 .idea
 
 imgtest
+
+# Eclipse / Buildship
+bin/
+.project
+.classpath
+.settings/
