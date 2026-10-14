@@ -22,26 +22,16 @@ public class PlayLoseCardPerformer implements ActionPerformer<BonkersGame> {
     @Override
     public void perform(BonkersGame game, Player player, Action action) {
         validate(game.status() == Game.Status.IN_PROGRESS, "Game is not in progress");
-        validate(game.getTurnPhase() == TurnPhase.WAITING_FOR_LOSE_INTERRUPT, "Not in interrupt window");
         validate(!game.currentPlayer().same(player), "Cannot play Lose card on yourself");
-        validate(game.canPlayerInterrupt(player), "You cannot interrupt");
+        validate(game.canPlayLoseCard(player), "You don't have a Lose card");
 
-        BonkersPlayer interrupter = game.gamePlayer(player);
-        validate(interrupter.hasLoseCard(), "You don't have a Lose card");
+        game.gamePlayer(player).useLoseCard();
 
-        // Use the Lose card
-        interrupter.useLoseCard();
-
-        // Clear the interrupt window - the interrupt happened
-        // Leaves the interrupt phase: processLanding only re-opens it if someone else can still interrupt
-        game.closeInterruptWindow();
-
-        // Move the active player to the Lose space
+        // The active player's turn stops immediately: they move to the Lose space, lose a point and pass the dice
         Player activePlayer = game.currentPlayer();
         BonkersPlayer activeBp = game.gamePlayer(activePlayer);
         activeBp.setPosition(BoardPosition.LOSE);
-
-        // Continue from step 3 for the active player (process landing at Lose space)
-        rollDicePerformer.processLanding(game, activePlayer);
+        activeBp.addScore(-1);
+        rollDicePerformer.endTurn(game);
     }
 }

@@ -23,7 +23,6 @@ public class BonkersGameDefinition extends BaseGameDefinition<BonkersGame> {
         var chooseExchange = new ChooseExchangeCardPerformer(rollDice);
         var chooseDirection = new ChooseDirectionPerformer(rollDice);
         var playLoseCard = new PlayLoseCardPerformer(rollDice);
-        var passLoseInterrupt = new PassLoseInterruptPerformer(rollDice);
 
         return Util.merge(
                 Set.of(
@@ -31,8 +30,7 @@ public class BonkersGameDefinition extends BaseGameDefinition<BonkersGame> {
                         placeCard,
                         chooseExchange,
                         chooseDirection,
-                        playLoseCard,
-                        passLoseInterrupt
+                        playLoseCard
                 ),
                 super.actionPerformers()
         );

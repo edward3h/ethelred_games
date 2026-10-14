@@ -37,7 +37,7 @@ public class BonkersPlayerView extends BasePlayerView<BonkersPlayer> {
     private List<BoardPosition> nearestScoreOptions;
 
     @JsonProperty
-    private boolean canInterrupt;
+    private boolean canPlayLoseCard;
 
     public BonkersPlayerView(Player player, BonkersGame game) {
         super(player, game);
@@ -61,7 +61,7 @@ public class BonkersPlayerView extends BasePlayerView<BonkersPlayer> {
             nearestScoreOptions = List.of(tie.forward(), tie.backward());
         }
 
-        // Show if this player can use their Lose card to interrupt
-        canInterrupt = game.canPlayerInterrupt(player);
+        // Show if this player can play their Lose card on the active player
+        canPlayLoseCard = game.canPlayLoseCard(player);
     }
 }

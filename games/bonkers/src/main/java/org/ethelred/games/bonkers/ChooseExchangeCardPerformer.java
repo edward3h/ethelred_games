@@ -8,6 +8,8 @@ import org.ethelred.games.core.Player;
 
 public class ChooseExchangeCardPerformer implements ActionPerformer<BonkersGame> {
     public static final String NAME = "chooseExchangeCard";
+    /** Argument for choosing not to exchange. */
+    public static final String DECLINE = "none";
 
     private final RollDicePerformer rollDicePerformer;
 
@@ -25,6 +27,12 @@ public class ChooseExchangeCardPerformer implements ActionPerformer<BonkersGame>
         validate(game.status() == Game.Status.IN_PROGRESS, "Game is not in progress");
         validate(game.getTurnPhase() == TurnPhase.WAITING_FOR_EXCHANGE_CHOICE, "Not waiting for exchange choice");
         validate(game.currentPlayer().same(player), "Not your turn");
+
+        // Exchanging is optional: declining leaves the Exchange Cards card where it is and ends the turn
+        if (DECLINE.equals(action.argumentAsString())) {
+            rollDicePerformer.endTurn(game);
+            return;
+        }
 
         BoardPosition targetPosition;
         try {

@@ -5,6 +5,8 @@ import org.ethelred.games.core.ActionPerformer;
 import org.ethelred.games.core.Game;
 import org.ethelred.games.core.Player;
 
+import java.util.List;
+
 public class RollDicePerformer implements ActionPerformer<BonkersGame> {
     public static final String NAME = "rollDice";
 
@@ -57,26 +59,18 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
             }
         }
 
-        // Step 4: Check for Lose space
+        // Step 4: Check for Lose space. The turn ends here, even if another player is on the space
         if (position.isLose()) {
             bp.addScore(-1);
-        }
-
-        // Open interrupt window for Lose cards
-        game.openLoseInterruptWindow();
-        if (game.getTurnPhase() == TurnPhase.WAITING_FOR_LOSE_INTERRUPT) {
-            // Interrupt window is open, wait for players to respond
+            endTurn(game);
             return;
         }
 
         // Continue processing
-        continueAfterInterrupt(game, player);
+        continueAfterLanding(game, player);
     }
 
-    /**
-     * Continue turn processing after interrupt window closes.
-     */
-    public void continueAfterInterrupt(BonkersGame game, Player player) {
+    private void continueAfterLanding(BonkersGame game, Player player) {
         BonkersPlayer bp = game.gamePlayer(player);
         BoardPosition position = bp.getPosition();
 
@@ -115,21 +109,12 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         BoardPosition position = bp.getPosition();
 
         // Check for action on space
-        ActionCard cardOnSpace = game.getCardOnSpace(position);
-        ActionCardType fixedAction = position.fixedAction();
-        ActionCardType actionType = null;
-
-        if (cardOnSpace != null) {
-            actionType = cardOnSpace.type();
-        } else if (fixedAction != null) {
-            actionType = fixedAction;
-        }
+        ActionCardType actionType = actionOn(game, position);
 
         if (actionType != null) {
-            if (!game.recordActionRun(position)) {
-                // The actions have sent the piece round in a circle. The rules don't cover this, so the
-                // turn ends with the piece where it is rather than looping forever.
-                endTurn(game);
+            List<BoardPosition> cycle = game.recordActionRun(position);
+            if (cycle != null) {
+                resolveEntrapment(game, player, cycle);
                 return;
             }
             executeAction(game, player, actionType, position);
@@ -137,6 +122,34 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         }
 
         // Step 8: No action, turn ends
+        endTurn(game);
+    }
+
+    private ActionCardType actionOn(BonkersGame game, BoardPosition position) {
+        ActionCard cardOnSpace = game.getCardOnSpace(position);
+        return cardOnSpace != null ? cardOnSpace.type() : position.fixedAction();
+    }
+
+    /**
+     * Entrapment: the actions sent the piece round in a circle (for example Back 3 onto Ahead 3). The player does
+     * not keep moving back and forth. They score 1 point and the piece stays on a space with a forward action, and
+     * the turn ends. A cycle with several forward spaces ends on the last one visited.
+     */
+    private void resolveEntrapment(BonkersGame game, Player player, List<BoardPosition> cycle) {
+        BonkersPlayer bp = game.gamePlayer(player);
+        BoardPosition rest = cycle.get(0);
+        for (BoardPosition position : cycle) {
+            ActionCardType type = actionOn(game, position);
+            if (type.isMovementAction() && type.getMovement() > 0) {
+                rest = position;
+            }
+        }
+        bp.setPosition(rest);
+        bp.addScore(1);
+        if (bp.hasWon()) {
+            game.winner(player);
+            return;
+        }
         endTurn(game);
     }
 

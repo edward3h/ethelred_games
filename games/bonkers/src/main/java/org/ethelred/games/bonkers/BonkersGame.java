@@ -6,6 +6,7 @@ import org.ethelred.games.core.Player;
 import org.ethelred.games.core.PlayerView;
 import org.ethelred.games.util.Util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,15 +31,11 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     // For GoToNearestScore when there's a tie
     private BoardPosition.NearestScores pendingScores;
 
-    // Positions whose action has run since the last roll or board change, to stop action cards looping
-    private final Set<BoardPosition> actionsRunThisChain = new HashSet<>();
+    // Positions whose action has run since the last roll or board change, in order, to spot action cards looping
+    private final List<BoardPosition> actionChain = new ArrayList<>();
 
     // For Exchange Cards
     private BoardPosition exchangeCardSource;
-
-    // Lose card interrupt state
-    private Set<Player> playersWhoCanInterrupt = new HashSet<>();
-    private Set<Player> playersWhoPassed = new HashSet<>();
 
     public BonkersGame(long id) {
         this(id, new Random());
@@ -163,7 +160,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
 
     void placeCardOnSpace(BoardPosition position, ActionCard card) {
         boardCards.put(position, card);
-        actionsRunThisChain.clear();
+        actionChain.clear();
     }
 
     /** The active player places a card from their hand, which uses up their placement for this turn. */
@@ -178,7 +175,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         boardCards.put(exchangeCardSource, boardCards.get(target));
         boardCards.put(target, exchange);
         exchangeCardSource = null;
-        actionsRunThisChain.clear();
+        actionChain.clear();
     }
 
     // Dice rolling
@@ -186,7 +183,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         int die1 = random.nextInt(6) + 1;
         int die2 = random.nextInt(6) + 1;
         lastDiceRoll = die1 + die2;
-        actionsRunThisChain.clear();
+        actionChain.clear();
         return lastDiceRoll;
     }
 
@@ -209,61 +206,30 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     }
 
     /**
-     * Record that the action on a space is about to run. Returns false if it has already run in this chain
-     * with nothing changed since: Ahead and Back cards can send a piece round in a circle forever.
+     * Record that the action on a space is about to run. Returns null normally. If the action has already run in
+     * this chain with nothing changed since, the actions are sending the piece round in a circle, and this returns
+     * the spaces in that cycle in the order they were visited.
      */
-    boolean recordActionRun(BoardPosition position) {
-        return actionsRunThisChain.add(position);
-    }
-
-    // Lose card interrupt handling
-    void openLoseInterruptWindow() {
-        playersWhoCanInterrupt = new HashSet<>();
-        playersWhoPassed = new HashSet<>();
-
-        eachPlayer((p, gp) -> {
-            if (!p.same(currentPlayer()) && gp.hasLoseCard()) {
-                playersWhoCanInterrupt.add(p);
-            }
-        });
-
-        if (!playersWhoCanInterrupt.isEmpty()) {
-            turnPhase = TurnPhase.WAITING_FOR_LOSE_INTERRUPT;
+    List<BoardPosition> recordActionRun(BoardPosition position) {
+        int first = actionChain.indexOf(position);
+        if (first < 0) {
+            actionChain.add(position);
+            return null;
         }
+        return List.copyOf(actionChain.subList(first, actionChain.size()));
     }
 
-    void playerPassedInterrupt(Player player) {
-        playersWhoPassed.add(player);
-    }
-
-    boolean allPlayersRespondedToInterrupt() {
-        return playersWhoPassed.containsAll(playersWhoCanInterrupt);
-    }
-
-    boolean canPlayerInterrupt(Player player) {
-        return playersWhoCanInterrupt.contains(player) && !playersWhoPassed.contains(player);
-    }
-
-    /** Close the interrupt window, and leave the interrupt phase if it was in it. */
-    void closeInterruptWindow() {
-        clearInterruptWindow();
-        if (turnPhase == TurnPhase.WAITING_FOR_LOSE_INTERRUPT) {
-            turnPhase = TurnPhase.WAITING_FOR_ROLL;
-        }
-    }
-
-    private void clearInterruptWindow() {
-        playersWhoCanInterrupt.clear();
-        playersWhoPassed.clear();
+    /** Whether the player holds a Lose card they can play on the active player right now. */
+    boolean canPlayLoseCard(Player player) {
+        return status() == Status.IN_PROGRESS && !player.same(currentPlayer()) && gamePlayer(player).hasLoseCard();
     }
 
     // Reset turn state for new turn
     void startNewTurn() {
-        actionsRunThisChain.clear();
+        actionChain.clear();
         hasPlacedCardThisTurn = false;
         pendingScores = null;
         exchangeCardSource = null;
-        clearInterruptWindow();
         turnPhase = TurnPhase.WAITING_FOR_ROLL;
     }
 
@@ -276,13 +242,9 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
 
         Set<ActionDefinition> actions = new TreeSet<>(super.actionsFor(player));
 
-        // Lose card interrupt - available to non-current players with Lose cards during interrupt window
-        if (turnPhase == TurnPhase.WAITING_FOR_LOSE_INTERRUPT) {
-            if (canPlayerInterrupt(player)) {
-                actions.add(new ActionDefinition("playLoseCard"));
-                actions.add(new ActionDefinition("passLoseInterrupt"));
-            }
-            return Set.copyOf(actions);
+        // A Lose card can be played on the active player at any time during their turn
+        if (canPlayLoseCard(player)) {
+            actions.add(new ActionDefinition("playLoseCard"));
         }
 
         // Only current player can take turn actions
@@ -305,13 +267,13 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
                 }
             }
             case WAITING_FOR_EXCHANGE_CHOICE -> {
-                Set<String> positions = getSpacesWithActionCards().stream()
+                // Exchanging is optional, so the player can always decline
+                Set<String> choices = getSpacesWithActionCards().stream()
                         .filter(pos -> !pos.equals(exchangeCardSource))
                         .map(String::valueOf)
-                        .collect(Collectors.toSet());
-                if (!positions.isEmpty()) {
-                    actions.add(new ActionDefinition("chooseExchangeCard", positions));
-                }
+                        .collect(Collectors.toCollection(HashSet::new));
+                choices.add(ChooseExchangeCardPerformer.DECLINE);
+                actions.add(new ActionDefinition("chooseExchangeCard", choices));
             }
             case WAITING_FOR_DIRECTION -> {
                 if (pendingScores != null) {

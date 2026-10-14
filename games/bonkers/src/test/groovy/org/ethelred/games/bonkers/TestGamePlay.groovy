@@ -15,7 +15,6 @@ class TestGamePlay extends Specification {
     ChooseExchangeCardPerformer exchangePerformer = new ChooseExchangeCardPerformer(rollPerformer)
     ChooseDirectionPerformer directionPerformer = new ChooseDirectionPerformer(rollPerformer)
     PlayLoseCardPerformer playLosePerformer = new PlayLoseCardPerformer(rollPerformer)
-    PassLoseInterruptPerformer passPerformer = new PassLoseInterruptPerformer(rollPerformer)
 
     // ---- setup -----------------------------------------------------------------------------
 
@@ -253,7 +252,24 @@ class TestGamePlay extends Specification {
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
     }
 
-    def 'action cards that send the piece round in a cycle end the turn instead of looping forever'() {
+    def 'entrapment: Back then Ahead cards score a point and leave the piece on the forward space'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(23), card('back3', 100))
+        game.placeCardOnSpace(BoardPosition.of(20), card('ahead3', 101))
+        game.gamePlayer(p1).position = BoardPosition.of(16)
+
+        when: 'landing on the Back 3 first'
+        roll(game, p1, 3, 4)
+
+        then:
+        game.gamePlayer(p1).position == BoardPosition.of(20)
+        game.gamePlayer(p1).score == 1
+        game.currentPlayer().same(p2)
+        game.turnPhase == TurnPhase.WAITING_FOR_ROLL
+    }
+
+    def 'entrapment: landing on the Ahead card first gives the same result'() {
         given:
         def (game, p1, p2) = setupGame()
         game.placeCardOnSpace(BoardPosition.of(20), card('ahead3', 100))
@@ -265,11 +281,11 @@ class TestGamePlay extends Specification {
 
         then:
         game.gamePlayer(p1).position == BoardPosition.of(20)
+        game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
-        game.turnPhase == TurnPhase.WAITING_FOR_ROLL
     }
 
-    def 'a cycle through the fixed Back 15 space also ends the turn'() {
+    def 'entrapment through the fixed Back 15 space'() {
         given:
         def (game, p1, p2) = setupGame()
         game.placeCardOnSpace(BoardPosition.of(28), card('ahead10', 100))
@@ -279,12 +295,13 @@ class TestGamePlay extends Specification {
         when: '28 -> 38 -> 43 (Back 15) -> 28 again'
         roll(game, p1, 3, 4)
 
-        then:
-        game.gamePlayer(p1).position == BoardPosition.of(28)
+        then: 'the piece rests on the last forward space visited'
+        game.gamePlayer(p1).position == BoardPosition.of(38)
+        game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
     }
 
-    def 'a cycle formed by placing a card also ends the turn'() {
+    def 'entrapment formed by placing a card'() {
         given:
         def (game, p1, p2) = setupGame()
         def placed = card('back3', 100)
@@ -293,7 +310,7 @@ class TestGamePlay extends Specification {
         game.gamePlayer(p1).position = BoardPosition.of(16)
         roll(game, p1, 3, 4)
 
-        expect: 'lands on 23 via nothing special and is offered a placement'
+        expect: 'the piece lands on empty space 23 and is offered a placement'
         game.gamePlayer(p1).position == BoardPosition.of(23)
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
 
@@ -301,8 +318,24 @@ class TestGamePlay extends Specification {
         place(game, p1, placed)
 
         then: '23 (Back 3) -> 20 (Ahead 3) -> 23 again'
-        game.gamePlayer(p1).position == BoardPosition.of(23)
+        game.gamePlayer(p1).position == BoardPosition.of(20)
+        game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
+    }
+
+    def 'entrapment can win the game'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(20), card('ahead3', 100))
+        game.placeCardOnSpace(BoardPosition.of(23), card('back3', 101))
+        game.gamePlayer(p1).position = BoardPosition.of(13)
+        game.gamePlayer(p1).addScore(11)
+
+        when:
+        roll(game, p1, 3, 4)
+
+        then:
+        game.status() == Game.Status.ENDED
     }
 
     def 'a long chain of action cards that does not repeat still runs to the end'() {
@@ -473,7 +506,7 @@ class TestGamePlay extends Specification {
 
         then:
         game.turnPhase == TurnPhase.WAITING_FOR_EXCHANGE_CHOICE
-        game.actionsFor(p1).contains(new ActionDefinition('chooseExchangeCard', '20'))
+        game.actionsFor(p1).contains(new ActionDefinition('chooseExchangeCard', '20', 'none'))
 
         when:
         exchangePerformer.perform(game, p1, new StringAction('chooseExchangeCard', '20'))
@@ -515,6 +548,29 @@ class TestGamePlay extends Specification {
         then:
         thrown(InvalidActionException)
         game.getCardOnSpace(BoardPosition.of(7)) == exchange
+    }
+
+    def 'exchange cards is optional and can be declined'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        def exchange = card('exchangeCards', 100)
+        def other = card('back3', 101)
+        game.placeCardOnSpace(BoardPosition.of(20), other)
+        game.gamePlayer(p1).giveCard(exchange)
+        roll(game, p1, 3, 4)
+        place(game, p1, exchange)
+
+        expect:
+        game.actionsFor(p1).contains(new ActionDefinition('chooseExchangeCard', '20', 'none'))
+
+        when:
+        exchangePerformer.perform(game, p1, new StringAction('chooseExchangeCard', 'none'))
+
+        then: 'nothing moves and the turn ends'
+        game.getCardOnSpace(BoardPosition.of(7)) == exchange
+        game.getCardOnSpace(BoardPosition.of(20)) == other
+        game.gamePlayer(p1).position == BoardPosition.of(7)
+        game.currentPlayer().same(p2)
     }
 
     def 'cannot exchange with an empty space'() {
@@ -597,37 +653,38 @@ class TestGamePlay extends Specification {
         game.turnPhase == TurnPhase.WAITING_FOR_DIRECTION
     }
 
-    // ---- lose card interrupts --------------------------------------------------------------
+    // ---- lose cards ------------------------------------------------------------------------
 
-    def 'players holding a lose card get a chance to interrupt'() {
+    def 'a lose card can be played on the active player at any time in their turn'() {
         given:
         def (game, p1, p2) = setupGame(2, false)
 
-        when:
+        expect: 'before they roll'
+        game.actionsFor(p2)*.name().contains('playLoseCard')
+        !game.actionsFor(p1)*.name().contains('playLoseCard')
+
+        when: 'and while they are choosing a card to place'
         roll(game, p1, 3, 4)
 
         then:
-        game.turnPhase == TurnPhase.WAITING_FOR_LOSE_INTERRUPT
-        game.actionsFor(p2)*.name().containsAll(['playLoseCard', 'passLoseInterrupt'])
+        game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
+        game.actionsFor(p2)*.name().contains('playLoseCard')
         !game.actionsFor(p1)*.name().contains('playLoseCard')
-        !game.actionsFor(p1)*.name().contains('placeCard')
     }
 
-    def 'passing the interrupt continues the turn'() {
+    def 'rolling does not wait for other players to pass'() {
         given:
         def (game, p1, p2) = setupGame(2, false)
-        roll(game, p1, 3, 4)
 
         when:
-        pass(game, p2)
+        roll(game, p1, 3, 4)
 
         then:
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
         game.currentPlayer().same(p1)
-        game.gamePlayer(p2).hasLoseCard()
     }
 
-    def 'playing a lose card sends the active player to Lose'() {
+    def 'playing a lose card stops the turn and sends the active player to Lose'() {
         given:
         def (game, p1, p2) = setupGame(2, false)
         game.gamePlayer(p1).addScore(3)
@@ -644,31 +701,61 @@ class TestGamePlay extends Specification {
         game.turnPhase == TurnPhase.WAITING_FOR_ROLL
     }
 
-    def 'with several players, everyone must pass before the turn continues'() {
+    def 'a lose card can be played before the active player has rolled'() {
         given:
-        def (game, p1, p2, p3) = setupGame(3, false)
-        roll(game, p1, 3, 4)
+        def (game, p1, p2) = setupGame(2, false)
 
         when:
-        pass(game, p2)
+        playLose(game, p2)
 
         then:
-        game.turnPhase == TurnPhase.WAITING_FOR_LOSE_INTERRUPT
-        !game.actionsFor(p2)*.name().contains('playLoseCard')
-        game.actionsFor(p3)*.name().contains('playLoseCard')
-
-        when:
-        pass(game, p3)
-
-        then:
-        game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
+        game.gamePlayer(p1).position == BoardPosition.of(31)
+        game.currentPlayer().same(p2)
     }
 
-    def 'a later player can still interrupt after another passes'() {
+    def 'a lose card played mid-turn drops the active player\'s pending choice'() {
+        given:
+        def (game, p1, p2) = setupGame(2, false)
+        def exchange = card('exchangeCards', 100)
+        game.placeCardOnSpace(BoardPosition.of(20), card('back3', 101))
+        game.gamePlayer(p1).giveCard(exchange)
+        roll(game, p1, 3, 4)
+        place(game, p1, exchange)
+
+        expect:
+        game.turnPhase == TurnPhase.WAITING_FOR_EXCHANGE_CHOICE
+
+        when:
+        playLose(game, p2)
+
+        then:
+        game.currentPlayer().same(p2)
+        game.turnPhase == TurnPhase.WAITING_FOR_ROLL
+        game.exchangeCardSource == null
+        !game.hasPlacedCardThisTurn()
+    }
+
+    def 'a lose card ends the turn even if another player is on the Lose space'() {
+        given:
+        def (game, p1, p2) = setupGame(2, false)
+        game.gamePlayer(p2).position = BoardPosition.of(31)
+
+        when:
+        playLose(game, p2)
+
+        then:
+        game.gamePlayer(p1).position == BoardPosition.of(31)
+        game.currentPlayer().same(p2)
+    }
+
+    def 'with several players any of them with a lose card can play it'() {
         given:
         def (game, p1, p2, p3) = setupGame(3, false)
         roll(game, p1, 3, 4)
-        pass(game, p2)
+
+        expect:
+        game.actionsFor(p2)*.name().contains('playLoseCard')
+        game.actionsFor(p3)*.name().contains('playLoseCard')
 
         when:
         playLose(game, p3)
@@ -677,12 +764,12 @@ class TestGamePlay extends Specification {
         game.gamePlayer(p1).position == BoardPosition.of(31)
         !game.gamePlayer(p3).hasLoseCard()
         game.gamePlayer(p2).hasLoseCard()
+        game.currentPlayer().same(p2)
     }
 
-    def 'cannot interrupt your own turn or pass when not eligible'() {
+    def 'cannot play a lose card on yourself, twice, or without one'() {
         given:
         def (game, p1, p2) = setupGame(2, false)
-        roll(game, p1, 3, 4)
 
         when:
         playLose(game, p1)
@@ -690,29 +777,44 @@ class TestGamePlay extends Specification {
         then:
         thrown(InvalidActionException)
 
-        when:
-        pass(game, p1)
+        when: 'p2 plays their only lose card, and then it is p2\'s turn so p1 plays theirs; p2 has none left'
+        playLose(game, p2)
+        playLose(game, p1)
+        roll(game, p1, 3, 4)
+        playLose(game, p2)
 
         then:
         thrown(InvalidActionException)
     }
 
-    def 'cannot play a lose card that was already used'() {
+    def 'cannot play a lose card when the game is over'() {
         given:
         def (game, p1, p2) = setupGame(2, false)
-        game.gamePlayer(p2).useLoseCard()
-
-        when:
+        game.gamePlayer(p1).addScore(11)
+        game.gamePlayer(p1).position = BoardPosition.of(5)
         roll(game, p1, 3, 4)
-
-        then: 'no interrupt window opens'
-        game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
 
         when:
         playLose(game, p2)
 
         then:
         thrown(InvalidActionException)
+    }
+
+    def 'the lose space ends the turn even if another player is on it'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.gamePlayer(p2).position = BoardPosition.of(31)
+        game.gamePlayer(p1).position = BoardPosition.of(25)
+        game.gamePlayer(p1).addScore(3)
+
+        when:
+        roll(game, p1, 3, 3)
+
+        then:
+        game.gamePlayer(p1).position == BoardPosition.of(31)
+        game.gamePlayer(p1).score == 2
+        game.currentPlayer().same(p2)
     }
 
     // ---- winning ---------------------------------------------------------------------------
@@ -805,7 +907,7 @@ class TestGamePlay extends Specification {
         def names = new BonkersGameDefinition().actionPerformers()*.actionName()
 
         then:
-        names.containsAll(['rollDice', 'placeCard', 'chooseExchangeCard', 'chooseDirection', 'playLoseCard', 'passLoseInterrupt'])
+        names.containsAll(['rollDice', 'placeCard', 'chooseExchangeCard', 'chooseDirection', 'playLoseCard'])
     }
 
     // ---- helpers ---------------------------------------------------------------------------
@@ -833,10 +935,6 @@ class TestGamePlay extends Specification {
 
     def place(BonkersGame game, player, ActionCard card) {
         placePerformer.perform(game, player, new StringAction('placeCard', card.shortCode()))
-    }
-
-    def pass(BonkersGame game, player) {
-        passPerformer.perform(game, player, new StringAction('passLoseInterrupt', ''))
     }
 
     def playLose(BonkersGame game, player) {
