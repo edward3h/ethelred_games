@@ -31,7 +31,7 @@ public class PassLoseInterruptPerformer implements ActionPerformer<BonkersGame> 
         // Check if all players have responded
         if (game.allPlayersRespondedToInterrupt()) {
             // Close the interrupt window and continue the turn
-            game.clearInterruptWindow();
+            game.closeInterruptWindow();
             rollDicePerformer.continueAfterInterrupt(game, game.currentPlayer());
         }
         // Otherwise, wait for other players to respond

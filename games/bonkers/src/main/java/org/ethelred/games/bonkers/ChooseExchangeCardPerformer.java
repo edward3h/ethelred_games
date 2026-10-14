@@ -45,14 +45,8 @@ public class ChooseExchangeCardPerformer implements ActionPerformer<BonkersGame>
         validate(targetCard != null, "No card at target position");
         validate(sourceCard.type() == ActionCardType.EXCHANGE_CARDS, "Source card is not Exchange Cards");
 
-        // Swap the cards
-        game.removeCardFromSpace(sourcePosition);
-        game.removeCardFromSpace(targetPosition);
-        game.placeCardOnSpace(sourcePosition, targetCard);
-        game.placeCardOnSpace(targetPosition, sourceCard);
-
-        // Clear the exchange state
-        game.setExchangeCardSource(null);
+        // Swap the cards and finish the exchange
+        game.completeExchange(targetPosition);
 
         // The player hasn't moved, but we need to continue processing
         // The new card is now at the source position (where the player is)

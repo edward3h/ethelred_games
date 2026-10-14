@@ -33,9 +33,8 @@ public class PlayLoseCardPerformer implements ActionPerformer<BonkersGame> {
         interrupter.useLoseCard();
 
         // Clear the interrupt window - the interrupt happened
-        game.clearInterruptWindow();
-        // Leave the interrupt phase: processLanding only re-opens it if someone else can still interrupt
-        game.setTurnPhase(TurnPhase.WAITING_FOR_ROLL);
+        // Leaves the interrupt phase: processLanding only re-opens it if someone else can still interrupt
+        game.closeInterruptWindow();
 
         // Move the active player to the Lose space
         Player activePlayer = game.currentPlayer();

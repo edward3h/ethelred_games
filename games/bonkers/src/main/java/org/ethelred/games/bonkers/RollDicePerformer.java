@@ -90,7 +90,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
 
         if (hasOtherPlayer || hasRollAgain) {
             // Go back to step 1 - roll again
-            game.setTurnPhase(TurnPhase.WAITING_FOR_ROLL);
+            game.awaitRoll();
             return;
         }
 
@@ -99,7 +99,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
                 && !game.hasPlacedCardThisTurn()
                 && bp.hasActionCards()
                 && cardOnSpace == null) {
-            game.setTurnPhase(TurnPhase.WAITING_FOR_CARD_PLACEMENT);
+            game.awaitCardPlacement();
             return;
         }
 
@@ -157,8 +157,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
                     processLanding(game, player);
                 } else {
                     // Tie - player must choose direction
-                    game.setPendingScores(nearest);
-                    game.setTurnPhase(TurnPhase.WAITING_FOR_DIRECTION);
+                    game.awaitDirection(nearest);
                 }
             }
             case EXCHANGE_CARDS -> {
@@ -168,13 +167,12 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
                     // No other cards to exchange with, skip this action
                     endTurn(game);
                 } else {
-                    game.setExchangeCardSource(sourcePosition);
-                    game.setTurnPhase(TurnPhase.WAITING_FOR_EXCHANGE_CHOICE);
+                    game.awaitExchange(sourcePosition);
                 }
             }
             case ROLL_AGAIN -> {
                 // This should have been handled in step 5, but handle it here for safety
-                game.setTurnPhase(TurnPhase.WAITING_FOR_ROLL);
+                game.awaitRoll();
             }
             default -> {
                 // Movement actions (AHEAD_n, BACK_n, BACK_15)

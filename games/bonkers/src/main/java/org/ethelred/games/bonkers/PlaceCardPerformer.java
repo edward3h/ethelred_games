@@ -40,10 +40,7 @@ public class PlaceCardPerformer implements ActionPerformer<BonkersGame> {
 
         // Place on current position
         BoardPosition position = bp.getPosition();
-        game.placeCardOnSpace(position, card);
-
-        // Mark that we've placed a card this turn
-        game.setHasPlacedCardThisTurn(true);
+        game.placeCardFromHand(position, card);
 
         // Draw a replacement card from deck if available
         ActionCard newCard = game.getDeck().draw();

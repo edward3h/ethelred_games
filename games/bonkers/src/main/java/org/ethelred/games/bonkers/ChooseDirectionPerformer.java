@@ -45,7 +45,7 @@ public class ChooseDirectionPerformer implements ActionPerformer<BonkersGame> {
         bp.setPosition(targetPosition);
 
         // Clear pending options
-        game.setPendingScores(null);
+        game.clearPendingScores();
 
         // Continue processing from landing
         rollDicePerformer.processLanding(game, player);

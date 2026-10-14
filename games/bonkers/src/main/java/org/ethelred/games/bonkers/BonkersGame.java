@@ -96,75 +96,88 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         return new BonkersPlayerView(player, this);
     }
 
-    // Getters for state
-    public TurnPhase getTurnPhase() {
+    // State queries - package-private, used by the performers and the player view
+
+    TurnPhase getTurnPhase() {
         return turnPhase;
     }
 
-    public void setTurnPhase(TurnPhase turnPhase) {
-        this.turnPhase = turnPhase;
-    }
-
-    public int getLastDiceRoll() {
+    int getLastDiceRoll() {
         return lastDiceRoll;
     }
 
-    public void setLastDiceRoll(int lastDiceRoll) {
-        this.lastDiceRoll = lastDiceRoll;
-    }
-
-    public boolean hasPlacedCardThisTurn() {
+    boolean hasPlacedCardThisTurn() {
         return hasPlacedCardThisTurn;
     }
 
-    public void setHasPlacedCardThisTurn(boolean hasPlacedCardThisTurn) {
-        this.hasPlacedCardThisTurn = hasPlacedCardThisTurn;
-    }
-
     /** The tied Score spaces the active player must choose between, or null. */
-    public BoardPosition.NearestScores getPendingScores() {
+    BoardPosition.NearestScores getPendingScores() {
         return pendingScores;
     }
 
-    public void setPendingScores(BoardPosition.NearestScores pendingScores) {
-        this.pendingScores = pendingScores;
-    }
-
     /** Where the Exchange Cards card being resolved sits, or null. */
-    public BoardPosition getExchangeCardSource() {
+    BoardPosition getExchangeCardSource() {
         return exchangeCardSource;
     }
 
-    public void setExchangeCardSource(BoardPosition position) {
-        this.exchangeCardSource = position;
-    }
-
-    public Map<BoardPosition, ActionCard> getBoardCards() {
+    Map<BoardPosition, ActionCard> getBoardCards() {
         return boardCards;
     }
 
-    public ActionCard getCardOnSpace(BoardPosition position) {
+    ActionCard getCardOnSpace(BoardPosition position) {
         return boardCards.get(position);
     }
 
-    public void placeCardOnSpace(BoardPosition position, ActionCard card) {
-        boardCards.put(position, card);
-    }
-
-    public ActionCard removeCardFromSpace(BoardPosition position) {
-        return boardCards.remove(position);
-    }
-
-    public ActionDeck getDeck() {
+    ActionDeck getDeck() {
         return deck;
     }
 
-    public Random getRandom() {
-        return random;
+    // Turn phase transitions - each one sets the phase together with the state that goes with it
+
+    void awaitRoll() {
+        turnPhase = TurnPhase.WAITING_FOR_ROLL;
+    }
+
+    void awaitCardPlacement() {
+        turnPhase = TurnPhase.WAITING_FOR_CARD_PLACEMENT;
+    }
+
+    void awaitDirection(BoardPosition.NearestScores tiedScores) {
+        pendingScores = tiedScores;
+        turnPhase = TurnPhase.WAITING_FOR_DIRECTION;
+    }
+
+    void clearPendingScores() {
+        pendingScores = null;
+    }
+
+    void awaitExchange(BoardPosition source) {
+        exchangeCardSource = source;
+        turnPhase = TurnPhase.WAITING_FOR_EXCHANGE_CHOICE;
+    }
+
+    // Changes to the board
+
+    void placeCardOnSpace(BoardPosition position, ActionCard card) {
+        boardCards.put(position, card);
+    }
+
+    /** The active player places a card from their hand, which uses up their placement for this turn. */
+    void placeCardFromHand(BoardPosition position, ActionCard card) {
+        placeCardOnSpace(position, card);
+        hasPlacedCardThisTurn = true;
+    }
+
+    /** Swap the Exchange Cards card with the card on the target space, and finish the exchange. */
+    void completeExchange(BoardPosition target) {
+        ActionCard exchange = boardCards.get(exchangeCardSource);
+        boardCards.put(exchangeCardSource, boardCards.get(target));
+        boardCards.put(target, exchange);
+        exchangeCardSource = null;
     }
 
     // Dice rolling
-    public int rollDice() {
+    int rollDice() {
         int die1 = random.nextInt(6) + 1;
         int die2 = random.nextInt(6) + 1;
         lastDiceRoll = die1 + die2;
@@ -172,7 +185,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     }
 
     // Check if another player is on a position
-    public boolean hasOtherPlayerOnSpace(Player currentPlayer, BoardPosition position) {
+    boolean hasOtherPlayerOnSpace(Player currentPlayer, BoardPosition position) {
         boolean[] found = {false};
         eachPlayer((p, gp) -> {
             if (!p.same(currentPlayer) && gp.getPosition().equals(position)) {
@@ -183,14 +196,14 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     }
 
     // Get positions that have action cards (for Exchange Cards)
-    public List<BoardPosition> getSpacesWithActionCards() {
+    List<BoardPosition> getSpacesWithActionCards() {
         return boardCards.keySet().stream()
                 .sorted()
                 .collect(Collectors.toList());
     }
 
     // Lose card interrupt handling
-    public void openLoseInterruptWindow() {
+    void openLoseInterruptWindow() {
         playersWhoCanInterrupt = new HashSet<>();
         playersWhoPassed = new HashSet<>();
 
@@ -205,29 +218,33 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         }
     }
 
-    public void playerPassedInterrupt(Player player) {
+    void playerPassedInterrupt(Player player) {
         playersWhoPassed.add(player);
     }
 
-    public boolean allPlayersRespondedToInterrupt() {
+    boolean allPlayersRespondedToInterrupt() {
         return playersWhoPassed.containsAll(playersWhoCanInterrupt);
     }
 
-    public boolean canPlayerInterrupt(Player player) {
+    boolean canPlayerInterrupt(Player player) {
         return playersWhoCanInterrupt.contains(player) && !playersWhoPassed.contains(player);
     }
 
-    public Set<Player> getPlayersWhoCanInterrupt() {
-        return playersWhoCanInterrupt;
+    /** Close the interrupt window, and leave the interrupt phase if it was in it. */
+    void closeInterruptWindow() {
+        clearInterruptWindow();
+        if (turnPhase == TurnPhase.WAITING_FOR_LOSE_INTERRUPT) {
+            turnPhase = TurnPhase.WAITING_FOR_ROLL;
+        }
     }
 
-    public void clearInterruptWindow() {
+    private void clearInterruptWindow() {
         playersWhoCanInterrupt.clear();
         playersWhoPassed.clear();
     }
 
     // Reset turn state for new turn
-    public void startNewTurn() {
+    void startNewTurn() {
         hasPlacedCardThisTurn = false;
         pendingScores = null;
         exchangeCardSource = null;
