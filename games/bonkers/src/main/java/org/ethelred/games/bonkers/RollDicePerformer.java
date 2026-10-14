@@ -126,6 +126,12 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         }
 
         if (actionType != null) {
+            if (!game.recordActionRun(position)) {
+                // The actions have sent the piece round in a circle. The rules don't cover this, so the
+                // turn ends with the piece where it is rather than looping forever.
+                endTurn(game);
+                return;
+            }
             executeAction(game, player, actionType, position);
             return;
         }

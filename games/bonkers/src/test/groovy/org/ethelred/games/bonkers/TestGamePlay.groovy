@@ -253,6 +253,73 @@ class TestGamePlay extends Specification {
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
     }
 
+    def 'action cards that send the piece round in a cycle end the turn instead of looping forever'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(20), card('ahead3', 100))
+        game.placeCardOnSpace(BoardPosition.of(23), card('back3', 101))
+        game.gamePlayer(p1).position = BoardPosition.of(13)
+
+        when:
+        roll(game, p1, 3, 4)
+
+        then:
+        game.gamePlayer(p1).position == BoardPosition.of(20)
+        game.currentPlayer().same(p2)
+        game.turnPhase == TurnPhase.WAITING_FOR_ROLL
+    }
+
+    def 'a cycle through the fixed Back 15 space also ends the turn'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(28), card('ahead10', 100))
+        game.placeCardOnSpace(BoardPosition.of(38), card('ahead5', 101))
+        game.gamePlayer(p1).position = BoardPosition.of(21)
+
+        when: '28 -> 38 -> 43 (Back 15) -> 28 again'
+        roll(game, p1, 3, 4)
+
+        then:
+        game.gamePlayer(p1).position == BoardPosition.of(28)
+        game.currentPlayer().same(p2)
+    }
+
+    def 'a cycle formed by placing a card also ends the turn'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        def placed = card('back3', 100)
+        game.placeCardOnSpace(BoardPosition.of(20), card('ahead3', 101))
+        game.gamePlayer(p1).giveCard(placed)
+        game.gamePlayer(p1).position = BoardPosition.of(16)
+        roll(game, p1, 3, 4)
+
+        expect: 'lands on 23 via nothing special and is offered a placement'
+        game.gamePlayer(p1).position == BoardPosition.of(23)
+        game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
+
+        when:
+        place(game, p1, placed)
+
+        then: '23 (Back 3) -> 20 (Ahead 3) -> 23 again'
+        game.gamePlayer(p1).position == BoardPosition.of(23)
+        game.currentPlayer().same(p2)
+    }
+
+    def 'a long chain of action cards that does not repeat still runs to the end'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(7), card('ahead3', 100))
+        game.placeCardOnSpace(BoardPosition.of(10), card('ahead2', 101))
+        game.gamePlayer(p1).actionCards.clear()
+
+        when:
+        roll(game, p1, 3, 4)
+
+        then: '7 -> 10 -> 12, which scores and has no action'
+        game.gamePlayer(p1).position == BoardPosition.of(12)
+        game.gamePlayer(p1).score == 1
+    }
+
     def 'turn order wraps round all players'() {
         given:
         def (game, p1, p2, p3) = setupGame(3)

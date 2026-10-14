@@ -30,6 +30,9 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     // For GoToNearestScore when there's a tie
     private BoardPosition.NearestScores pendingScores;
 
+    // Positions whose action has run since the last roll or board change, to stop action cards looping
+    private final Set<BoardPosition> actionsRunThisChain = new HashSet<>();
+
     // For Exchange Cards
     private BoardPosition exchangeCardSource;
 
@@ -160,6 +163,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
 
     void placeCardOnSpace(BoardPosition position, ActionCard card) {
         boardCards.put(position, card);
+        actionsRunThisChain.clear();
     }
 
     /** The active player places a card from their hand, which uses up their placement for this turn. */
@@ -174,6 +178,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         boardCards.put(exchangeCardSource, boardCards.get(target));
         boardCards.put(target, exchange);
         exchangeCardSource = null;
+        actionsRunThisChain.clear();
     }
 
     // Dice rolling
@@ -181,6 +186,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         int die1 = random.nextInt(6) + 1;
         int die2 = random.nextInt(6) + 1;
         lastDiceRoll = die1 + die2;
+        actionsRunThisChain.clear();
         return lastDiceRoll;
     }
 
@@ -200,6 +206,14 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         return boardCards.keySet().stream()
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Record that the action on a space is about to run. Returns false if it has already run in this chain
+     * with nothing changed since: Ahead and Back cards can send a piece round in a circle forever.
+     */
+    boolean recordActionRun(BoardPosition position) {
+        return actionsRunThisChain.add(position);
     }
 
     // Lose card interrupt handling
@@ -245,6 +259,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
 
     // Reset turn state for new turn
     void startNewTurn() {
+        actionsRunThisChain.clear();
         hasPlacedCardThisTurn = false;
         pendingScores = null;
         exchangeCardSource = null;
