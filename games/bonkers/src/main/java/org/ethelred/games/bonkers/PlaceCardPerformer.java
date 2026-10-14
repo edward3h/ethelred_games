@@ -39,7 +39,7 @@ public class PlaceCardPerformer implements ActionPerformer<BonkersGame> {
         bp.takeCard(card);
 
         // Place on current position
-        int position = bp.getPosition();
+        BoardPosition position = bp.getPosition();
         game.placeCardOnSpace(position, card);
 
         // Mark that we've placed a card this turn

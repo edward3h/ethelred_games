@@ -70,7 +70,7 @@ class TestDeckAndPlayer extends Specification {
         def player = new BonkersPlayer()
 
         expect:
-        player.position == 0
+        player.position == BoardPosition.START
         player.score == 0
         player.hasLoseCard()
         !player.hasActionCards()

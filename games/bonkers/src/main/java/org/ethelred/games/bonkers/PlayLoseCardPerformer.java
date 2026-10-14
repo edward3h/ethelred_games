@@ -40,7 +40,7 @@ public class PlayLoseCardPerformer implements ActionPerformer<BonkersGame> {
         // Move the active player to the Lose space
         Player activePlayer = game.currentPlayer();
         BonkersPlayer activeBp = game.gamePlayer(activePlayer);
-        activeBp.setPosition(Board.LOSE_POSITION);
+        activeBp.setPosition(BoardPosition.LOSE);
 
         // Continue from step 3 for the active player (process landing at Lose space)
         rollDicePerformer.processLanding(game, activePlayer);

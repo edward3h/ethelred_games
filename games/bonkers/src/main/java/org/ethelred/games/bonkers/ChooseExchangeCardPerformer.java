@@ -26,16 +26,16 @@ public class ChooseExchangeCardPerformer implements ActionPerformer<BonkersGame>
         validate(game.getTurnPhase() == TurnPhase.WAITING_FOR_EXCHANGE_CHOICE, "Not waiting for exchange choice");
         validate(game.currentPlayer().same(player), "Not your turn");
 
-        int targetPosition;
+        BoardPosition targetPosition;
         try {
-            targetPosition = Integer.parseInt(action.argumentAsString());
+            targetPosition = BoardPosition.of(Integer.parseInt(action.argumentAsString()));
         } catch (NumberFormatException e) {
             throw new InvalidActionException("Invalid position: " + action.argumentAsString());
         }
 
-        int sourcePosition = game.getExchangeCardSourcePosition();
-        validate(sourcePosition >= 0, "No source position for exchange");
-        validate(targetPosition != sourcePosition, "Cannot exchange card with itself");
+        BoardPosition sourcePosition = game.getExchangeCardSource();
+        validate(sourcePosition != null, "No source position for exchange");
+        validate(!targetPosition.equals(sourcePosition), "Cannot exchange card with itself");
 
         // Get the cards at both positions
         ActionCard sourceCard = game.getCardOnSpace(sourcePosition);
@@ -52,7 +52,7 @@ public class ChooseExchangeCardPerformer implements ActionPerformer<BonkersGame>
         game.placeCardOnSpace(targetPosition, sourceCard);
 
         // Clear the exchange state
-        game.setExchangeCardSourcePosition(-1);
+        game.setExchangeCardSource(null);
 
         // The player hasn't moved, but we need to continue processing
         // The new card is now at the source position (where the player is)

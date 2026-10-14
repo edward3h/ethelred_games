@@ -26,16 +26,16 @@ public class ChooseDirectionPerformer implements ActionPerformer<BonkersGame> {
         validate(game.getTurnPhase() == TurnPhase.WAITING_FOR_DIRECTION, "Not waiting for direction choice");
         validate(game.currentPlayer().same(player), "Not your turn");
 
-        int[] options = game.getPendingScoreOptions();
-        validate(options != null && options.length == 2, "No direction options available");
+        var options = game.getPendingScores();
+        validate(options != null, "No direction options available");
 
         String direction = action.argumentAsString();
-        int targetPosition;
+        BoardPosition targetPosition;
 
         if ("forward".equals(direction)) {
-            targetPosition = options[0];
+            targetPosition = options.forward();
         } else if ("backward".equals(direction)) {
-            targetPosition = options[1];
+            targetPosition = options.backward();
         } else {
             throw new InvalidActionException("Invalid direction: " + direction + ". Must be 'forward' or 'backward'");
         }
@@ -45,7 +45,7 @@ public class ChooseDirectionPerformer implements ActionPerformer<BonkersGame> {
         bp.setPosition(targetPosition);
 
         // Clear pending options
-        game.setPendingScoreOptions(null);
+        game.setPendingScores(null);
 
         // Continue processing from landing
         rollDicePerformer.processLanding(game, player);

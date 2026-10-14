@@ -34,9 +34,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         }
 
         // Move the player
-        int oldPosition = bp.getPosition();
-        int newPosition = Board.move(oldPosition, roll);
-        bp.setPosition(newPosition);
+        bp.setPosition(bp.getPosition().plus(roll));
 
         // Process the landing
         processLanding(game, player);
@@ -48,10 +46,10 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
      */
     public void processLanding(BonkersGame game, Player player) {
         BonkersPlayer bp = game.gamePlayer(player);
-        int position = bp.getPosition();
+        BoardPosition position = bp.getPosition();
 
         // Step 3: Check for Score space
-        if (Board.isScoreSpace(position)) {
+        if (position.isScore()) {
             bp.addScore(1);
             if (bp.hasWon()) {
                 game.winner(player);
@@ -60,7 +58,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         }
 
         // Step 4: Check for Lose space
-        if (Board.isLoseSpace(position)) {
+        if (position.isLose()) {
             bp.addScore(-1);
         }
 
@@ -80,12 +78,12 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
      */
     public void continueAfterInterrupt(BonkersGame game, Player player) {
         BonkersPlayer bp = game.gamePlayer(player);
-        int position = bp.getPosition();
+        BoardPosition position = bp.getPosition();
 
         // Step 5: Check for re-roll conditions
         boolean hasOtherPlayer = game.hasOtherPlayerOnSpace(player, position);
         ActionCard cardOnSpace = game.getCardOnSpace(position);
-        ActionCardType fixedAction = Board.getFixedAction(position);
+        ActionCardType fixedAction = position.fixedAction();
 
         boolean hasRollAgain = (cardOnSpace != null && cardOnSpace.type() == ActionCardType.ROLL_AGAIN)
                 || (fixedAction == ActionCardType.ROLL_AGAIN);
@@ -97,7 +95,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
         }
 
         // Step 6: Check for card placement (only on blank spaces)
-        if (Board.isBlankSpace(position)
+        if (position.isBlank()
                 && !game.hasPlacedCardThisTurn()
                 && bp.hasActionCards()
                 && cardOnSpace == null) {
@@ -114,11 +112,11 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
      */
     public void checkAndExecuteAction(BonkersGame game, Player player) {
         BonkersPlayer bp = game.gamePlayer(player);
-        int position = bp.getPosition();
+        BoardPosition position = bp.getPosition();
 
         // Check for action on space
         ActionCard cardOnSpace = game.getCardOnSpace(position);
-        ActionCardType fixedAction = Board.getFixedAction(position);
+        ActionCardType fixedAction = position.fixedAction();
         ActionCardType actionType = null;
 
         if (cardOnSpace != null) {
@@ -139,37 +137,38 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
     /**
      * Execute an action card effect.
      */
-    private void executeAction(BonkersGame game, Player player, ActionCardType actionType, int sourcePosition) {
+    private void executeAction(
+            BonkersGame game, Player player, ActionCardType actionType, BoardPosition sourcePosition) {
         BonkersPlayer bp = game.gamePlayer(player);
 
         switch (actionType) {
             case GO_TO_LOSE -> {
-                bp.setPosition(Board.LOSE_POSITION);
+                bp.setPosition(BoardPosition.LOSE);
                 processLanding(game, player);
             }
             case GO_TO_START -> {
-                bp.setPosition(Board.START_POSITION);
+                bp.setPosition(BoardPosition.START);
                 processLanding(game, player);
             }
             case GO_TO_NEAREST_SCORE -> {
-                int[] options = Board.findNearestScorePositions(bp.getPosition());
-                if (options.length == 1) {
-                    bp.setPosition(options[0]);
+                var nearest = bp.getPosition().nearestScores();
+                if (!nearest.isTie()) {
+                    bp.setPosition(nearest.nearest());
                     processLanding(game, player);
                 } else {
                     // Tie - player must choose direction
-                    game.setPendingScoreOptions(options);
+                    game.setPendingScores(nearest);
                     game.setTurnPhase(TurnPhase.WAITING_FOR_DIRECTION);
                 }
             }
             case EXCHANGE_CARDS -> {
                 // Player must choose which card to swap
                 if (game.getSpacesWithActionCards().isEmpty() ||
-                        (game.getSpacesWithActionCards().size() == 1 && game.getSpacesWithActionCards().get(0) == sourcePosition)) {
+                        (game.getSpacesWithActionCards().size() == 1 && game.getSpacesWithActionCards().get(0).equals(sourcePosition))) {
                     // No other cards to exchange with, skip this action
                     endTurn(game);
                 } else {
-                    game.setExchangeCardSourcePosition(sourcePosition);
+                    game.setExchangeCardSource(sourcePosition);
                     game.setTurnPhase(TurnPhase.WAITING_FOR_EXCHANGE_CHOICE);
                 }
             }
@@ -180,8 +179,7 @@ public class RollDicePerformer implements ActionPerformer<BonkersGame> {
             default -> {
                 // Movement actions (AHEAD_n, BACK_n, BACK_15)
                 if (actionType.isMovementAction()) {
-                    int newPosition = Board.move(bp.getPosition(), actionType.getMovement());
-                    bp.setPosition(newPosition);
+                    bp.setPosition(bp.getPosition().plus(actionType.getMovement()));
                     processLanding(game, player);
                 } else {
                     // Unknown action, end turn

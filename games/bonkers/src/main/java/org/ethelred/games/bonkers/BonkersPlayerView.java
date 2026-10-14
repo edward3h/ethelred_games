@@ -19,7 +19,7 @@ public class BonkersPlayerView extends BasePlayerView<BonkersPlayer> {
     private int lastDiceRoll;
 
     @JsonProperty
-    private Map<Integer, ActionCard> boardCards;
+    private Map<BoardPosition, ActionCard> boardCards;
 
     @JsonProperty
     private List<ActionCard> myActionCards;
@@ -28,13 +28,13 @@ public class BonkersPlayerView extends BasePlayerView<BonkersPlayer> {
     private boolean myLoseCard;
 
     @JsonProperty
-    private int myPosition;
+    private BoardPosition myPosition;
 
     @JsonProperty
     private int myScore;
 
     @JsonProperty
-    private int[] nearestScoreOptions;
+    private List<BoardPosition> nearestScoreOptions;
 
     @JsonProperty
     private boolean canInterrupt;
@@ -56,8 +56,9 @@ public class BonkersPlayerView extends BasePlayerView<BonkersPlayer> {
         myScore = bp.getScore();
 
         // Only show direction options when in that phase
-        if (game.getTurnPhase() == TurnPhase.WAITING_FOR_DIRECTION) {
-            nearestScoreOptions = game.getPendingScoreOptions();
+        var tie = game.getPendingScores();
+        if (game.getTurnPhase() == TurnPhase.WAITING_FOR_DIRECTION && tie != null) {
+            nearestScoreOptions = List.of(tie.forward(), tie.backward());
         }
 
         // Show if this player can use their Lose card to interrupt

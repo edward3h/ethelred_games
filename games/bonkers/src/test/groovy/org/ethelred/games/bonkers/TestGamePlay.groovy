@@ -1,5 +1,6 @@
 package org.ethelred.games.bonkers
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.ethelred.games.core.ActionDefinition
 import org.ethelred.games.core.BasePlayer
 import org.ethelred.games.core.Game
@@ -40,7 +41,7 @@ class TestGamePlay extends Specification {
         game.turnPhase == TurnPhase.WAITING_FOR_ROLL
         [p1, p2].every {
             def bp = game.gamePlayer(it)
-            bp.actionCards.size() == 4 && bp.hasLoseCard() && bp.position == 0 && bp.score == 0
+            bp.actionCards.size() == 4 && bp.hasLoseCard() && bp.position == BoardPosition.of(0) && bp.score == 0
         }
         game.deck.remainingCards() == 40 - 8
     }
@@ -64,7 +65,7 @@ class TestGamePlay extends Specification {
         roll(game, p1, 3, 4)
 
         then:
-        game.gamePlayer(p1).position == 7
+        game.gamePlayer(p1).position == BoardPosition.of(7)
         game.lastDiceRoll == 7
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
         game.currentPlayer().same(p1)
@@ -91,13 +92,13 @@ class TestGamePlay extends Specification {
     def 'rolling a 12 scores a point'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 1
+        game.gamePlayer(p1).position = BoardPosition.of(1)
 
         when:
         roll(game, p1, 6, 6)
 
         then:
-        game.gamePlayer(p1).position == 13
+        game.gamePlayer(p1).position == BoardPosition.of(13)
         game.gamePlayer(p1).score == 1
     }
 
@@ -109,20 +110,20 @@ class TestGamePlay extends Specification {
         roll(game, p1, 6, 6)
 
         then:
-        game.gamePlayer(p1).position == 12
+        game.gamePlayer(p1).position == BoardPosition.of(12)
         game.gamePlayer(p1).score == 2
     }
 
     def 'landing on a score space scores a point and ends the turn'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 5
+        game.gamePlayer(p1).position = BoardPosition.of(5)
 
         when:
         roll(game, p1, 3, 4)
 
         then:
-        game.gamePlayer(p1).position == 12
+        game.gamePlayer(p1).position == BoardPosition.of(12)
         game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
         game.turnPhase == TurnPhase.WAITING_FOR_ROLL
@@ -131,14 +132,14 @@ class TestGamePlay extends Specification {
     def 'landing on the lose space loses a point and ends the turn'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 25
+        game.gamePlayer(p1).position = BoardPosition.of(25)
         game.gamePlayer(p1).addScore(3)
 
         when:
         roll(game, p1, 3, 3)
 
         then:
-        game.gamePlayer(p1).position == 31
+        game.gamePlayer(p1).position == BoardPosition.of(31)
         game.gamePlayer(p1).score == 2
         game.currentPlayer().same(p2)
     }
@@ -146,7 +147,7 @@ class TestGamePlay extends Specification {
     def 'score does not go below zero'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 25
+        game.gamePlayer(p1).position = BoardPosition.of(25)
 
         when:
         roll(game, p1, 3, 3)
@@ -158,13 +159,13 @@ class TestGamePlay extends Specification {
     def 'landing on another player means roll again'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p2).position = 7
+        game.gamePlayer(p2).position = BoardPosition.of(7)
 
         when:
         roll(game, p1, 3, 4)
 
         then:
-        game.gamePlayer(p1).position == 7
+        game.gamePlayer(p1).position == BoardPosition.of(7)
         game.currentPlayer().same(p1)
         game.turnPhase == TurnPhase.WAITING_FOR_ROLL
     }
@@ -180,7 +181,7 @@ class TestGamePlay extends Specification {
         place(game, p1, placed)
 
         then:
-        game.gamePlayer(p1).position == 0
+        game.gamePlayer(p1).position == BoardPosition.of(0)
         game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p1)
         game.turnPhase == TurnPhase.WAITING_FOR_ROLL
@@ -189,7 +190,7 @@ class TestGamePlay extends Specification {
     def 'landing on a roll again card means roll again'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.placeCardOnSpace(7, card('rollAgain', 100))
+        game.placeCardOnSpace(BoardPosition.of(7), card('rollAgain', 100))
 
         when:
         roll(game, p1, 3, 4)
@@ -214,14 +215,14 @@ class TestGamePlay extends Specification {
     def 'fixed Go To Lose space sends the player to Lose'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 30
+        game.gamePlayer(p1).position = BoardPosition.of(30)
         game.gamePlayer(p1).addScore(3)
 
         when:
         roll(game, p1, 2, 3)
 
         then:
-        game.gamePlayer(p1).position == 31
+        game.gamePlayer(p1).position == BoardPosition.of(31)
         game.gamePlayer(p1).score == 2
         game.currentPlayer().same(p2)
     }
@@ -229,26 +230,26 @@ class TestGamePlay extends Specification {
     def 'fixed Back 15 space moves the player back 15'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p1).position = 40
+        game.gamePlayer(p1).position = BoardPosition.of(40)
 
         when:
         roll(game, p1, 1, 2)
 
         then:
-        game.gamePlayer(p1).position == 28
+        game.gamePlayer(p1).position == BoardPosition.of(28)
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
     }
 
     def 'landing on an action card runs it without placing another'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.placeCardOnSpace(7, card('ahead3', 100))
+        game.placeCardOnSpace(BoardPosition.of(7), card('ahead3', 100))
 
         when:
         roll(game, p1, 3, 4)
 
         then:
-        game.gamePlayer(p1).position == 10
+        game.gamePlayer(p1).position == BoardPosition.of(10)
         game.turnPhase == TurnPhase.WAITING_FOR_CARD_PLACEMENT
     }
 
@@ -289,7 +290,7 @@ class TestGamePlay extends Specification {
         place(game, p1, placed)
 
         then:
-        game.getCardOnSpace(7) == placed
+        game.getCardOnSpace(BoardPosition.of(7)) == placed
         !game.gamePlayer(p1).actionCards.contains(placed)
         game.gamePlayer(p1).actionCards.size() == 5
         game.deck.remainingCards() == 40 - 8 - 1
@@ -306,15 +307,15 @@ class TestGamePlay extends Specification {
         place(game, p1, placed)
 
         then:
-        game.gamePlayer(p1).position == 9
-        game.getCardOnSpace(7) == placed
+        game.gamePlayer(p1).position == BoardPosition.of(9)
+        game.getCardOnSpace(BoardPosition.of(7)) == placed
         game.currentPlayer().same(p2)
     }
 
     def 'placing Go To Start sends the player to Start where they score'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p2).position = 20
+        game.gamePlayer(p2).position = BoardPosition.of(20)
         def placed = card('goToStart', 100)
         game.gamePlayer(p1).giveCard(placed)
         roll(game, p1, 3, 4)
@@ -323,7 +324,7 @@ class TestGamePlay extends Specification {
         place(game, p1, placed)
 
         then:
-        game.gamePlayer(p1).position == 0
+        game.gamePlayer(p1).position == BoardPosition.of(0)
         game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
     }
@@ -355,7 +356,7 @@ class TestGamePlay extends Specification {
         roll(game, p1, 1, 2)
 
         then: 'no second placement is offered; the turn ends'
-        game.gamePlayer(p1).position == 10
+        game.gamePlayer(p1).position == BoardPosition.of(10)
         game.currentPlayer().same(p2)
     }
 
@@ -396,7 +397,7 @@ class TestGamePlay extends Specification {
         def (game, p1, p2) = setupGame()
         def other = card('back3', 101)
         def exchange = card('exchangeCards', 100)
-        game.placeCardOnSpace(20, other)
+        game.placeCardOnSpace(BoardPosition.of(20), other)
         game.gamePlayer(p1).giveCard(exchange)
         roll(game, p1, 3, 4)
 
@@ -411,9 +412,9 @@ class TestGamePlay extends Specification {
         exchangePerformer.perform(game, p1, new StringAction('chooseExchangeCard', '20'))
 
         then: 'cards swapped, and the swapped-in Back 3 then moves the player from 7 to 4'
-        game.getCardOnSpace(7) == other
-        game.getCardOnSpace(20) == exchange
-        game.gamePlayer(p1).position == 4
+        game.getCardOnSpace(BoardPosition.of(7)) == other
+        game.getCardOnSpace(BoardPosition.of(20)) == exchange
+        game.gamePlayer(p1).position == BoardPosition.of(4)
         game.currentPlayer().same(p2)
     }
 
@@ -428,15 +429,32 @@ class TestGamePlay extends Specification {
         place(game, p1, exchange)
 
         then:
-        game.getCardOnSpace(7) == exchange
+        game.getCardOnSpace(BoardPosition.of(7)) == exchange
         game.currentPlayer().same(p2)
+    }
+
+    def 'exchange target is normalised so a space cannot be exchanged with itself'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        def exchange = card('exchangeCards', 100)
+        game.placeCardOnSpace(BoardPosition.of(20), card('back3', 101))
+        game.gamePlayer(p1).giveCard(exchange)
+        roll(game, p1, 3, 4)
+        place(game, p1, exchange)
+
+        when: 'space 62 is the same space as 7'
+        exchangePerformer.perform(game, p1, new StringAction('chooseExchangeCard', '62'))
+
+        then:
+        thrown(InvalidActionException)
+        game.getCardOnSpace(BoardPosition.of(7)) == exchange
     }
 
     def 'cannot exchange with an empty space'() {
         given:
         def (game, p1, p2) = setupGame()
         def exchange = card('exchangeCards', 100)
-        game.placeCardOnSpace(20, card('back3', 101))
+        game.placeCardOnSpace(BoardPosition.of(20), card('back3', 101))
         game.gamePlayer(p1).giveCard(exchange)
         roll(game, p1, 3, 4)
         place(game, p1, exchange)
@@ -453,7 +471,7 @@ class TestGamePlay extends Specification {
     def 'go to nearest score with a single nearest space moves there'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p2).position = 20
+        game.gamePlayer(p2).position = BoardPosition.of(20)
         def nearest = card('goToNearestScore', 100)
         game.gamePlayer(p1).giveCard(nearest)
         roll(game, p1, 2, 3)
@@ -462,7 +480,7 @@ class TestGamePlay extends Specification {
         place(game, p1, nearest)
 
         then:
-        game.gamePlayer(p1).position == 0
+        game.gamePlayer(p1).position == BoardPosition.of(0)
         game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
     }
@@ -470,7 +488,7 @@ class TestGamePlay extends Specification {
     def 'go to nearest score with a tie asks for a direction'() {
         given:
         def (game, p1, p2) = setupGame()
-        game.gamePlayer(p2).position = 20
+        game.gamePlayer(p2).position = BoardPosition.of(20)
         def nearest = card('goToNearestScore', 100)
         game.gamePlayer(p1).giveCard(nearest)
         roll(game, p1, 3, 3)
@@ -486,7 +504,7 @@ class TestGamePlay extends Specification {
         directionPerformer.perform(game, p1, new StringAction('chooseDirection', direction))
 
         then:
-        game.gamePlayer(p1).position == expectedPosition
+        game.gamePlayer(p1).position == BoardPosition.of(expectedPosition)
         game.gamePlayer(p1).score == 1
         game.currentPlayer().same(p2)
 
@@ -552,7 +570,7 @@ class TestGamePlay extends Specification {
         playLose(game, p2)
 
         then:
-        game.gamePlayer(p1).position == 31
+        game.gamePlayer(p1).position == BoardPosition.of(31)
         game.gamePlayer(p1).score == 2
         !game.gamePlayer(p2).hasLoseCard()
         game.currentPlayer().same(p2)
@@ -589,7 +607,7 @@ class TestGamePlay extends Specification {
         playLose(game, p3)
 
         then:
-        game.gamePlayer(p1).position == 31
+        game.gamePlayer(p1).position == BoardPosition.of(31)
         !game.gamePlayer(p3).hasLoseCard()
         game.gamePlayer(p2).hasLoseCard()
     }
@@ -636,7 +654,7 @@ class TestGamePlay extends Specification {
         given:
         def (game, p1, p2) = setupGame()
         game.gamePlayer(p1).addScore(11)
-        game.gamePlayer(p1).position = 5
+        game.gamePlayer(p1).position = BoardPosition.of(5)
 
         when:
         roll(game, p1, 3, 4)
@@ -649,7 +667,7 @@ class TestGamePlay extends Specification {
         given:
         def (game, p1, p2) = setupGame()
         game.gamePlayer(p1).addScore(11)
-        game.gamePlayer(p1).position = 1
+        game.gamePlayer(p1).position = BoardPosition.of(1)
 
         when:
         roll(game, p1, 6, 6)
@@ -662,7 +680,7 @@ class TestGamePlay extends Specification {
         given:
         def (game, p1, p2) = setupGame()
         game.gamePlayer(p1).addScore(11)
-        game.gamePlayer(p1).position = 5
+        game.gamePlayer(p1).position = BoardPosition.of(5)
         roll(game, p1, 3, 4)
 
         when:
@@ -685,6 +703,34 @@ class TestGamePlay extends Specification {
         view.myActionCards.size() == 4
         view.myLoseCard
         view.turnPhase == TurnPhase.WAITING_FOR_ROLL
+    }
+
+    def 'player view serialises positions and board cards as plain numbers'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        game.placeCardOnSpace(BoardPosition.of(20), card('back3', 101))
+
+        when:
+        def json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(game.playerView(p1)))
+
+        then:
+        json.get('myPosition').intValue() == 0
+        json.get('boardCards').get('20').textValue() == 'back3_101'
+    }
+
+    def 'player view offers tied score spaces as forward then backward'() {
+        given:
+        def (game, p1, p2) = setupGame()
+        def nearest = card('goToNearestScore', 100)
+        game.gamePlayer(p1).giveCard(nearest)
+        roll(game, p1, 3, 3)
+        place(game, p1, nearest)
+
+        when:
+        def json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(game.playerView(p1)))
+
+        then:
+        json.get('nearestScoreOptions')*.intValue() == [12, 0]
     }
 
     def 'game definition registers every bonkers action'() {

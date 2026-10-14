@@ -20,7 +20,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     private ActionDeck deck;
 
     // Board state: position -> card placed there
-    private final Map<Integer, ActionCard> boardCards = new HashMap<>();
+    private final Map<BoardPosition, ActionCard> boardCards = new HashMap<>();
 
     // Turn state
     private TurnPhase turnPhase = TurnPhase.WAITING_FOR_ROLL;
@@ -28,10 +28,10 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     private boolean hasPlacedCardThisTurn;
 
     // For GoToNearestScore when there's a tie
-    private int[] pendingScoreOptions;
+    private BoardPosition.NearestScores pendingScores;
 
     // For Exchange Cards
-    private int exchangeCardSourcePosition = -1;
+    private BoardPosition exchangeCardSource;
 
     // Lose card interrupt state
     private Set<Player> playersWhoCanInterrupt = new HashSet<>();
@@ -121,36 +121,38 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
         this.hasPlacedCardThisTurn = hasPlacedCardThisTurn;
     }
 
-    public int[] getPendingScoreOptions() {
-        return pendingScoreOptions;
+    /** The tied Score spaces the active player must choose between, or null. */
+    public BoardPosition.NearestScores getPendingScores() {
+        return pendingScores;
     }
 
-    public void setPendingScoreOptions(int[] pendingScoreOptions) {
-        this.pendingScoreOptions = pendingScoreOptions;
+    public void setPendingScores(BoardPosition.NearestScores pendingScores) {
+        this.pendingScores = pendingScores;
     }
 
-    public int getExchangeCardSourcePosition() {
-        return exchangeCardSourcePosition;
+    /** Where the Exchange Cards card being resolved sits, or null. */
+    public BoardPosition getExchangeCardSource() {
+        return exchangeCardSource;
     }
 
-    public void setExchangeCardSourcePosition(int position) {
-        this.exchangeCardSourcePosition = position;
+    public void setExchangeCardSource(BoardPosition position) {
+        this.exchangeCardSource = position;
     }
 
-    public Map<Integer, ActionCard> getBoardCards() {
+    public Map<BoardPosition, ActionCard> getBoardCards() {
         return boardCards;
     }
 
-    public ActionCard getCardOnSpace(int position) {
-        return boardCards.get(Board.normalizePosition(position));
+    public ActionCard getCardOnSpace(BoardPosition position) {
+        return boardCards.get(position);
     }
 
-    public void placeCardOnSpace(int position, ActionCard card) {
-        boardCards.put(Board.normalizePosition(position), card);
+    public void placeCardOnSpace(BoardPosition position, ActionCard card) {
+        boardCards.put(position, card);
     }
 
-    public ActionCard removeCardFromSpace(int position) {
-        return boardCards.remove(Board.normalizePosition(position));
+    public ActionCard removeCardFromSpace(BoardPosition position) {
+        return boardCards.remove(position);
     }
 
     public ActionDeck getDeck() {
@@ -170,21 +172,18 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     }
 
     // Check if another player is on a position
-    public boolean hasOtherPlayerOnSpace(Player currentPlayer, int position) {
-        int pos = Board.normalizePosition(position);
-        for (var entry : playerViews().entrySet()) {
-            if (!entry.getKey().same(currentPlayer)) {
-                BonkersPlayer bp = gamePlayer(entry.getKey());
-                if (bp.getPosition() == pos) {
-                    return true;
-                }
+    public boolean hasOtherPlayerOnSpace(Player currentPlayer, BoardPosition position) {
+        boolean[] found = {false};
+        eachPlayer((p, gp) -> {
+            if (!p.same(currentPlayer) && gp.getPosition().equals(position)) {
+                found[0] = true;
             }
-        }
-        return false;
+        });
+        return found[0];
     }
 
     // Get positions that have action cards (for Exchange Cards)
-    public List<Integer> getSpacesWithActionCards() {
+    public List<BoardPosition> getSpacesWithActionCards() {
         return boardCards.keySet().stream()
                 .sorted()
                 .collect(Collectors.toList());
@@ -230,8 +229,8 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
     // Reset turn state for new turn
     public void startNewTurn() {
         hasPlacedCardThisTurn = false;
-        pendingScoreOptions = null;
-        exchangeCardSourcePosition = -1;
+        pendingScores = null;
+        exchangeCardSource = null;
         clearInterruptWindow();
         turnPhase = TurnPhase.WAITING_FOR_ROLL;
     }
@@ -275,7 +274,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
             }
             case WAITING_FOR_EXCHANGE_CHOICE -> {
                 Set<String> positions = getSpacesWithActionCards().stream()
-                        .filter(pos -> pos != exchangeCardSourcePosition)
+                        .filter(pos -> !pos.equals(exchangeCardSource))
                         .map(String::valueOf)
                         .collect(Collectors.toSet());
                 if (!positions.isEmpty()) {
@@ -283,7 +282,7 @@ public class BonkersGame extends BaseGame<BonkersPlayer> {
                 }
             }
             case WAITING_FOR_DIRECTION -> {
-                if (pendingScoreOptions != null && pendingScoreOptions.length == 2) {
+                if (pendingScores != null) {
                     actions.add(new ActionDefinition("chooseDirection", "forward", "backward"));
                 }
             }

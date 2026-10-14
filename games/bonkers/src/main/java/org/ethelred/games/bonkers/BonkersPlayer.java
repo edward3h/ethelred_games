@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BonkersPlayer implements GamePlayer {
-    private int position = 0;
+    private BoardPosition position = BoardPosition.START;
     private int score = 0;
     private boolean hasLoseCard = true;
     private final List<ActionCard> actionCards = new ArrayList<>();
@@ -17,12 +17,12 @@ public class BonkersPlayer implements GamePlayer {
     public BonkersPlayer() {
     }
 
-    public int getPosition() {
+    public BoardPosition getPosition() {
         return position;
     }
 
-    public void setPosition(int position) {
-        this.position = Board.normalizePosition(position);
+    public void setPosition(BoardPosition position) {
+        this.position = position;
     }
 
     public int getScore() {
@@ -76,7 +76,7 @@ public class BonkersPlayer implements GamePlayer {
     @Override
     public Map<String, Object> publicProperties() {
         return Map.of(
-                "position", position,
+                "position", position.index(),
                 "score", score,
                 "cardCount", actionCards.size(),
                 "hasLoseCard", hasLoseCard
