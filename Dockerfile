@@ -1,4 +1,4 @@
-FROM node:22.20.0-alpine AS node
+FROM node:22.23.3-alpine AS node
 
 FROM eclipse-temurin:25.0.4_7-jdk-alpine as jre-build
 
