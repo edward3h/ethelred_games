@@ -23,7 +23,7 @@ dependencies {
     }
 
     // used for mocking
-    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.14.11'
+    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.18.15-jdk5'
     testRuntimeOnly 'org.objenesis:objenesis:3.3'
 }
 
