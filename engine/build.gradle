@@ -7,7 +7,7 @@ dependencies {
     implementation("com.github.javafaker:javafaker:1.0.2") {
         exclude(group: "org.yaml")
     }
-    runtimeOnly("org.yaml:snakeyaml:2.2")
+    runtimeOnly("org.yaml:snakeyaml:2.7")
     testImplementation("com.google.guava:guava:32.1.3-jre") //override default android guava dependency for below
     testImplementation("com.google.jimfs:jimfs:1.3.2")
 }
