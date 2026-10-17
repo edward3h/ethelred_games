@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-	rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:2.6.3"))
+	rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:2.23.2"))
 	rewrite("org.openrewrite.recipe:rewrite-migrate-java")
 	rewrite("org.openrewrite.recipe:rewrite-java-security")
 }
